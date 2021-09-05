@@ -2,18 +2,16 @@ const { JWT_SECRET } = require("../secrets"); // use this secret!
 const { body, checkSchema, validationResult } = require("express-validator");
 const jwt = require("jsonwebtoken")
 const {findBy} = require("../users/users-model");
-
+const bcrypt = require("bcryptjs");
 const checkValidationResult=(req,res,next)=>{
-  (req,res,next)=>{
-    const errors = validationResult(req);
-    if(errors.isEmpty()){
-      next();
-    }
-    else{
-      const {status,message} = errors.array()[0].msg;
-      res.status(status).json({message});
-    }
+  const errors = validationResult(req);
+  if(errors.isEmpty()){
+    next();
   }
+  else{
+    const {status,message} = errors.array()[0].msg;
+    res.status(status).json({message});
+  } 
 }
 
 const restricted = [
@@ -97,7 +95,16 @@ const checkUsernameExists = [
     body("username").isString()
     .custom(async(value,{req})=>{
       const usersFound = await findBy({username:value});
-      return usersFound.length !== 0;
+      if(usersFound.length !== 1){
+        return Promise.reject();
+      }
+      const user = usersFound[0];
+      const isValid = bcrypt.compareSync(req.body.password,user.password);
+      if(!isValid){
+        return Promise.reject();
+      }
+      req.user = user;
+      return Promise.resolve();
     })
     .withMessage({
       status:401,
@@ -127,7 +134,7 @@ const validateRoleName = [
   */ 
     checkSchema({
       role_name:{
-        trim,
+        trim:{},
         customSanitizer:{
           options:(value)=>value===""?"student":value
         },
