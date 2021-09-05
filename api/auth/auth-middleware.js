@@ -42,8 +42,8 @@ const restricted = [
     // });
     // header("authorization.token").isString().withMessage()
     checkSchema({
-      "authorization.token":{
-        in:["header"],
+      "authorization":{
+        in:["headers"],
         isString:{
           errorMessage:{status:401,message:"Token required"}
         },
